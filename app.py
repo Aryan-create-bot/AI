@@ -1,22 +1,30 @@
 from flask import Flask, request, jsonify
-from transformers import pipeline
+import openai
+import os
+
 app = Flask(__name__)
-qa_pipeline = pipeline("question-answering", model="distilbert-base-uncased-distilled-squad")
+
+# Use your OpenAI API key (better to set as ENV variable)
+openai.api_key = os.getenv("OPENAI_API_KEY") or "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"
+
 @app.route('/api/v1', methods=['GET'])
-def ai_qa_get():
+def ai_reply():
     question = request.args.get('question', '')
-    context = request.args.get('context', '')
     if not question:
         return jsonify({'error': 'No question provided'}), 400
-    if not context:
-        context = (
-            "Nepal is a country in South Asia. "
-            "Sita is a Sanskrit name. "
-            "Nepal has a rich history of kings and culture. "
-            "Mount Everest is the highest mountain in the world. "
-            "... add more knowledge here ..."
+
+    try:
+        response = openai.Completion.create(
+            model="text-davinci-003",
+            prompt=f"Answer clearly: {question}",
+            max_tokens=200,
+            temperature=0.7
         )
-    result = qa_pipeline(question=question, context=context)
-    return jsonify({'reply': result['answer']})
+        answer = response.choices[0].text.strip()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    return jsonify({'reply': answer})
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
